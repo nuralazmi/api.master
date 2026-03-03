@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Verify Your Email</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #4F46E5; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+    .btn { display: inline-block; background: #4F46E5; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin: 20px 0; }
+    .code { font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #4F46E5; text-align: center; padding: 20px; background: white; border-radius: 8px; margin: 20px 0; }
+    .footer { text-align: center; margin-top: 20px; color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header"><h1>Verify Your Email</h1></div>
+  <div class="content">
+    <p>Hello {{name}},</p>
+    <p>Please verify your email address. This link expires in {{expiresIn}}.</p>
+    {{#if hasCode}}
+    <p>Your verification code:</p>
+    <div class="code">{{code}}</div>
+    {{/if}}
+    <a href="{{verificationUrl}}" class="btn">Verify Email</a>
+    <p>Or copy this link: {{verificationUrl}}</p>
+  </div>
+  <div class="footer"><p>If you didn't request this, please ignore this email.</p></div>
+</body>
+</html>

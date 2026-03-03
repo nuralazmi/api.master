@@ -1,0 +1,101 @@
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
+import { LoggerModule } from 'nestjs-pino';
+
+import configs from './config';
+import { configValidationSchema } from '@config/config.schema';
+import { DatabaseModule } from '@core/database/database.module';
+import { CacheModule } from '@core/cache/cache.module';
+import { HealthModule } from '@core/health/health.module';
+import { MailModule } from '@core/mail/mail.module';
+
+import { CorrelationIdMiddleware } from '@common/middleware';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+
+import { AuthModule } from '@modules/auth/auth.module';
+import { TestModule } from '@modules/test/test.module';
+
+@Module({
+  imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
+        transport: {
+          targets: [
+            {
+              target: 'pino-pretty',
+              level: 'info',
+              options: {
+                colorize: true,
+                levelFirst: true,
+                translateTime: 'HH:MM:ss Z',
+                ignore: 'req,res,headers,remoteAddress,remotePort',
+              },
+            },
+            {
+              target: 'pino/file',
+              options: { destination: './app.log' },
+            },
+          ],
+        },
+        genReqId: (req) =>
+          req.headers['x-correlation-id'] || crypto.randomUUID(),
+        customProps: (req) => ({
+          correlationId: req['id'],
+        }),
+        customSuccessMessage: (req, res) =>
+          `Request completed with status ${res.statusCode}`,
+        customErrorMessage: (req, res, err) =>
+          `Request failed: ${err.message}`,
+      },
+    }),
+
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: configs,
+      validationSchema: configValidationSchema,
+      envFilePath: '.env',
+    }),
+
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
+
+    EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
+
+    // Core modules
+    DatabaseModule,
+    CacheModule,
+    HealthModule,
+    MailModule,
+
+    // Feature modules
+    AuthModule,
+    TestModule,
+    // Add your modules here...
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
+})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+}
