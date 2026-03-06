@@ -4,6 +4,7 @@ import { ClsService } from 'nestjs-cls';
 import { UserService } from '@modules/user/user.service';
 import { Call, CallStatus } from './entities/call.entity';
 import { CallsRepository } from './calls.repository';
+import { TwilioService } from '@core/twilio/twilio.service';
 
 @Injectable()
 export class CallsScheduler {
@@ -13,12 +14,12 @@ export class CallsScheduler {
     private readonly callsRepository: CallsRepository,
     private readonly userService: UserService,
     private readonly cls: ClsService,
+    private readonly twilioService: TwilioService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async processDueCalls(): Promise<void> {
     const dueCalls = await this.callsRepository.findDueCalls();
-    const systemNumber = "Twilio alınan statik sistem numarası";
 
     if (dueCalls.length === 0) return;
 
@@ -31,13 +32,14 @@ export class CallsScheduler {
         await this.callsRepository.rawUpdate(call.id, { status: CallStatus.IN_PROGRESS });
 
         try {
-          // TODO: Twilio entegrasyonu
-          this.logger.log(`[MOCK] Calling ${call.phone} for call ${call.id}`);
+          const result = await this.twilioService.makeCall(call.phone);
+          this.logger.log(`Call ${call.id} initiated — Twilio SID: ${result.sid}`);
 
           await this.callsRepository.rawUpdate(call.id, {
             status: CallStatus.COMPLETED,
             calledAt: new Date(),
-          });
+            twilioSid: result.sid,
+          } as Partial<Call>);
           await this.userService.decrementCredit(call.userId);
         } catch (err) {
           const failureReason = err instanceof Error ? err.message : 'Unknown error';

@@ -4,7 +4,7 @@ import { BusinessException, ConflictException } from '@common/exceptions';
 import { ErrorCode } from '@common/constants';
 import { CacheService } from '@core/cache/cache.service';
 import { ClientContextService } from '@core/cls/client-context.service';
-import { generateVerificationCode } from '@common/utils/string.util';
+import { TwilioService } from '@core/twilio/twilio.service';
 import { hashPassword, comparePassword } from '@common/utils/password.util';
 import { UserService } from '@modules/user/user.service';
 import { toUserResponseDto } from '@modules/user/dto';
@@ -15,10 +15,6 @@ import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 
-interface OtpCache {
-  code: string;
-}
-
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -28,11 +24,8 @@ export class AuthService {
     private readonly cacheService: CacheService,
     private readonly jwtService: JwtService,
     private readonly clientContext: ClientContextService,
+    private readonly twilioService: TwilioService,
   ) {}
-
-  private otpKey(type: OtpType, phone: string): string {
-    return `otp:${type}:${this.clientContext.getClientId()}:${phone}`;
-  }
 
   private cooldownKey(type: OtpType, phone: string): string {
     return `otp:cooldown:${type}:${this.clientContext.getClientId()}:${phone}`;
@@ -55,21 +48,14 @@ export class AuthService {
       throw new BusinessException('No account found', ErrorCode.USER_NOT_FOUND);
     }
 
-    const code = generateVerificationCode();
-    await this.cacheService.set<OtpCache>(this.otpKey(dto.type, dto.phone), { code }, 300);
     await this.cacheService.set(this.cooldownKey(dto.type, dto.phone), '1', 60);
-
-    this.logger.log(`OTP [${dto.type}] for ${dto.phone}: ${code}`);
+    await this.twilioService.sendOtp(dto.phone);
+    this.logger.debug(`OTP [${dto.type}] sent to ${dto.phone}`);
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
-    const stored = await this.cacheService.get<OtpCache>(
-      this.otpKey(OtpType.RESET_PASSWORD, dto.phone),
-    );
-    if (!stored) {
-      throw new BusinessException('OTP expired or not sent', ErrorCode.INVALID_CODE);
-    }
-    if (stored.code !== dto.code) {
+    const { valid } = await this.twilioService.checkOtp(dto.phone, dto.code);
+    if (!valid) {
       throw new BusinessException('Invalid OTP', ErrorCode.INVALID_CODE);
     }
 
@@ -80,18 +66,11 @@ export class AuthService {
 
     const passwordHash = await hashPassword(dto.password);
     await this.userService.updatePassword(user.id, passwordHash);
-    await this.cacheService.del(this.otpKey(OtpType.RESET_PASSWORD, dto.phone));
   }
 
   async register(dto: RegisterDto): Promise<AuthResponseDto> {
-    const stored = await this.cacheService.get<OtpCache>(
-      this.otpKey(OtpType.REGISTER, dto.phone),
-    );
-
-    if (!stored) {
-      throw new BusinessException('OTP expired or not sent', ErrorCode.INVALID_CODE);
-    }
-    if (stored.code !== dto.code) {
+    const { valid } = await this.twilioService.checkOtp(dto.phone, dto.code);
+    if (!valid) {
       throw new BusinessException('Invalid OTP', ErrorCode.INVALID_CODE);
     }
 
@@ -106,8 +85,6 @@ export class AuthService {
       passwordHash,
       isVerified: true,
     });
-
-    await this.cacheService.del(this.otpKey(OtpType.REGISTER, dto.phone));
 
     const accessToken = this.jwtService.sign({
       sub: user.id,

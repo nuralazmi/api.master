@@ -5,13 +5,15 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    Logger,
     Param,
     Post,
     Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import {CurrentUser, CurrentUserData} from '@common/decorators/current-user.decorator';
 import {ClientOnly} from '@common/decorators/client-only.decorator';
+import {Public} from '@common/decorators/public.decorator';
 import {ApiWrappedResponse} from '@common/decorators/api-wrapped-response.decorator';
 import {ApiCursorPaginatedResponse} from '@common/decorators/api-cursor-paginated-response.decorator';
 import {CallsService} from './calls.service';
@@ -45,5 +47,24 @@ export class CallsController {
     async cancel(@CurrentUser() user: CurrentUserData, @Param('id') id: string) {
         await this.callsService.cancel(user.id, id);
         return {message: 'Call cancelled successfully'};
+    }
+
+    @Post('trigger-test')
+    @HttpCode(HttpStatus.OK)
+    async triggerTestCall(@Body('phone') phone: string) {
+        const data = await this.callsService.triggerTestCall(phone);
+        return { message: 'Test call triggered', data };
+    }
+
+    @Public()
+    @Post('webhook/twilio/status')
+    @HttpCode(HttpStatus.OK)
+    @ApiExcludeEndpoint()
+    async handleTwilioStatus(@Body() body: Record<string, string>) {
+        const { CallSid, CallStatus: status } = body;
+        if (CallSid && status) {
+            this.callsService.handleTwilioWebhook(CallSid, status);
+        }
+        return { message: 'OK' };
     }
 }

@@ -12,6 +12,7 @@ import { DatabaseModule } from '@core/database/database.module';
 import { CacheModule } from '@core/cache/cache.module';
 import { HealthModule } from '@core/health/health.module';
 import { MailModule } from '@core/mail/mail.module';
+import { TwilioModule } from '@core/twilio/twilio.module';
 
 import { CorrelationIdMiddleware, TenantMiddleware } from '@common/middleware';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
@@ -84,6 +85,7 @@ import { PackagesModule } from '@modules/packages/packages.module';
     CacheModule,
     HealthModule,
     MailModule,
+    TwilioModule,
 
     // Feature modules
     ClientModule,

@@ -1,8 +1,9 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { BusinessException } from '@common/exceptions';
 import { ErrorCode } from '@common/constants';
 import { CursorPaginationResponseDto } from '@common/dto/cursor-pagination-response.dto';
+import { TwilioService } from '@core/twilio/twilio.service';
 import { ListCallsDto } from './dto/list-calls.dto';
 import { UserService } from '@modules/user/user.service';
 import { Call, CallStatus } from './entities/call.entity';
@@ -11,9 +12,12 @@ import { CreateCallDto } from './dto/create-call.dto';
 
 @Injectable()
 export class CallsService {
+  private readonly logger = new Logger(CallsService.name);
+
   constructor(
     private readonly callsRepository: CallsRepository,
     private readonly userService: UserService,
+    private readonly twilioService: TwilioService,
   ) {}
 
   async schedule(userId: string, dto: CreateCallDto): Promise<Call> {
@@ -80,5 +84,42 @@ export class CallsService {
     }
 
     await this.callsRepository.update(callId, { status: CallStatus.CANCELLED });
+  }
+
+  async triggerTestCall(phone: string): Promise<{ sid: string }> {
+    this.logger.log(`Triggering test call to ${phone}`);
+    return this.twilioService.makeCall(phone);
+  }
+
+  handleTwilioWebhook(callSid: string, twilioStatus: string): void {
+    this.callsRepository
+      .findByTwilioSid(callSid)
+      .then((call) => {
+        if (!call) {
+          this.logger.warn(`Twilio webhook: no call found for SID ${callSid}`);
+          return;
+        }
+
+        const statusMap: Record<string, CallStatus> = {
+          completed: CallStatus.COMPLETED,
+          busy: CallStatus.FAILED,
+          'no-answer': CallStatus.FAILED,
+          failed: CallStatus.FAILED,
+        };
+
+        const mappedStatus = statusMap[twilioStatus];
+        if (!mappedStatus) return;
+
+        const updateData: Partial<Call> = { status: mappedStatus };
+        if (mappedStatus === CallStatus.FAILED) {
+          updateData.failureReason = `Twilio status: ${twilioStatus}`;
+        }
+
+        return this.callsRepository.rawUpdateUnscoped(call.id, call.clientId, updateData);
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        this.logger.error(`Twilio webhook processing failed: ${msg}`);
+      });
   }
 }

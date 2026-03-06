@@ -39,12 +39,6 @@ export const configValidationSchema = Joi.object({
   // Frontend URL
   FRONTEND_URL: Joi.string().default('http://localhost:3001'),
 
-  // SMS (optional)
-  SMS_PROVIDER: Joi.string().optional().allow(''),
-  SMS_API_KEY: Joi.string().optional().allow(''),
-  SMS_SECRET: Joi.string().optional().allow(''),
-  SMS_SENDER: Joi.string().optional().allow(''),
-
   // Firebase FCM (optional)
   FIREBASE_PROJECT_ID: Joi.string().optional().allow(''),
   FIREBASE_PRIVATE_KEY: Joi.string().optional().allow(''),
@@ -74,6 +68,13 @@ export const configValidationSchema = Joi.object({
     otherwise: Joi.optional(),
   }),
   MAX_FILE_SIZE: Joi.number().default(5242880),
+
+  // Twilio (optional)
+  TWILIO_ACCOUNT_SID: Joi.string().optional().allow(''),
+  TWILIO_AUTH_TOKEN: Joi.string().optional().allow(''),
+  TWILIO_PHONE_NUMBER: Joi.string().optional().allow(''),
+  TWILIO_STATUS_CALLBACK_URL: Joi.string().optional().allow(''),
+  TWILIO_VERIFY_SERVICE_SID: Joi.string().optional().allow(''),
 
   // Rate Limiting
   THROTTLE_TTL: Joi.number().default(60),

@@ -39,4 +39,22 @@ export class CallsRepository extends TenantBaseRepository<Call> {
       data as never,
     );
   }
+
+  /**
+   * Find a call by Twilio SID (cross-tenant, used by webhook handler).
+   */
+  async findByTwilioSid(twilioSid: string): Promise<Call | null> {
+    return this.callRepo.findOne({ where: { twilioSid } });
+  }
+
+  /**
+   * Update by id with explicit clientId — used by webhook handler
+   * which runs outside CLS context.
+   */
+  async rawUpdateUnscoped(id: string, clientId: string, data: Partial<Call>): Promise<void> {
+    await this.callRepo.update(
+      { id, clientId } as FindOptionsWhere<Call>,
+      data as never,
+    );
+  }
 }

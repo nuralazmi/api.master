@@ -39,4 +39,7 @@ export class Call extends TenantBaseEntity {
 
   @Column({ name: 'failure_reason', type: 'varchar', length: 500, nullable: true })
   failureReason?: string;
+
+  @Column({ name: 'twilio_sid', type: 'varchar', length: 50, nullable: true })
+  twilioSid?: string;
 }
