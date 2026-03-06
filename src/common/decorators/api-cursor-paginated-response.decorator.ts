@@ -7,8 +7,8 @@ import { buildCursorPaginatedSchema } from './swagger-response.utils';
  *
  * @example @ApiCursorPaginatedResponse(UserResponseDto)
  */
-export const ApiCursorPaginatedResponse = <TModel extends Type<any>>(
-  model: TModel,
+export const ApiCursorPaginatedResponse = (
+  model: any,
   options: { status?: number; description?: string; message?: string } = {},
 ) => {
   const { status = HttpStatus.OK, description = 'Data retrieved successfully', message } = options;

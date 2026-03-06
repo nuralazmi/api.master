@@ -2,8 +2,10 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export interface CurrentUserData {
   id: string;
-  email: string;
+  email?: string;
+  phone?: string;
   role: string;
+  clientId: string;
 }
 
 /**

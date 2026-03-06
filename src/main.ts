@@ -131,6 +131,19 @@ async function bootstrap() {
             ),
           ),
         };
+        if (!operation.parameters) operation.parameters = [];
+        const alreadyHasClientId = operation.parameters.some(
+          (p: { in: string; name: string }) => p.in === 'header' && p.name === 'X-Client-ID',
+        );
+        if (!alreadyHasClientId) {
+          operation.parameters.push({
+            in: 'header',
+            name: 'X-Client-ID',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Tenant client identifier',
+          });
+        }
       });
     });
 

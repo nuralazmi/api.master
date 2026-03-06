@@ -34,8 +34,8 @@ export const getCursorPaginationSchema = () => ({
   required: ['nextCursor', 'hasNextPage', 'limit'],
 });
 
-export const buildWrappedSchema = <TModel extends Type<any>>(
-  model: TModel,
+export const buildWrappedSchema = (
+  model: Type<unknown>,
   options?: { isArray?: boolean; message?: string },
 ) => ({
   type: 'object',
@@ -50,8 +50,8 @@ export const buildWrappedSchema = <TModel extends Type<any>>(
   required: ['success', 'message', 'meta', 'data'],
 });
 
-export const buildPaginatedSchema = <TModel extends Type<any>>(
-  model: TModel,
+export const buildPaginatedSchema = (
+  model: Type<unknown>,
   options?: { message?: string },
 ) => ({
   type: 'object',
@@ -65,8 +65,8 @@ export const buildPaginatedSchema = <TModel extends Type<any>>(
   required: ['success', 'message', 'pagination', 'meta', 'data'],
 });
 
-export const buildCursorPaginatedSchema = <TModel extends Type<any>>(
-  model: TModel,
+export const buildCursorPaginatedSchema = (
+  model: Type<unknown>,
   options?: { message?: string },
 ) => ({
   type: 'object',

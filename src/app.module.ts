@@ -1,7 +1,7 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
@@ -13,12 +13,17 @@ import { CacheModule } from '@core/cache/cache.module';
 import { HealthModule } from '@core/health/health.module';
 import { MailModule } from '@core/mail/mail.module';
 
-import { CorrelationIdMiddleware } from '@common/middleware';
+import { CorrelationIdMiddleware, TenantMiddleware } from '@common/middleware';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
+import { ClientOnlyGuard } from '@common/guards/client-only.guard';
 
+import { ClsModule } from '@core/cls/cls.module';
 import { AuthModule } from '@modules/auth/auth.module';
-import { TestModule } from '@modules/test/test.module';
+import { ClientModule } from '@modules/clients/client.module';
+import { UserModule } from '@modules/user/user.module';
+import { CallsModule } from '@modules/calls/calls.module';
+import { SystemSettingsModule } from '@modules/system-settings/system-settings.module';
 
 @Module({
   imports: [
@@ -73,17 +78,25 @@ import { TestModule } from '@modules/test/test.module';
     ScheduleModule.forRoot(),
 
     // Core modules
+    ClsModule,
     DatabaseModule,
     CacheModule,
     HealthModule,
     MailModule,
 
     // Feature modules
+    ClientModule,
+    UserModule,
     AuthModule,
-    TestModule,
+    CallsModule,
+    SystemSettingsModule,
     // Add your modules here...
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
@@ -92,10 +105,14 @@ import { TestModule } from '@modules/test/test.module';
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    {
+      provide: APP_GUARD,
+      useClass: ClientOnlyGuard,
+    },
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+    consumer.apply(CorrelationIdMiddleware, TenantMiddleware).forRoutes('*');
   }
 }
