@@ -24,6 +24,7 @@ import { ClientModule } from '@modules/clients/client.module';
 import { UserModule } from '@modules/user/user.module';
 import { CallsModule } from '@modules/calls/calls.module';
 import { SystemSettingsModule } from '@modules/system-settings/system-settings.module';
+import { PackagesModule } from '@modules/packages/packages.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { SystemSettingsModule } from '@modules/system-settings/system-settings.m
     AuthModule,
     CallsModule,
     SystemSettingsModule,
+    PackagesModule,
     // Add your modules here...
   ],
   providers: [

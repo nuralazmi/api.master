@@ -18,6 +18,7 @@ export class CallsScheduler {
   @Cron(CronExpression.EVERY_MINUTE)
   async processDueCalls(): Promise<void> {
     const dueCalls = await this.callsRepository.findDueCalls();
+    const systemNumber = "Twilio alınan statik sistem numarası";
 
     if (dueCalls.length === 0) return;
 

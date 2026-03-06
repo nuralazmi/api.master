@@ -686,6 +686,85 @@ Tek bir sistem ayarini key ile getirir.
 
 ---
 
+### Packages
+
+> Tum packages endpoint'leri `@Public()` — JWT gerektirmez. Tenant-scoped: `X-Client-ID` header ile tenant belirlenir.
+
+Package entity alanlari:
+
+| Alan | Tip | Zorunlu | Aciklama |
+|------|-----|---------|----------|
+| `id` | UUID v7 | Otomatik | Primary key |
+| `clientId` | UUID v7 | Otomatik | Tenant identifier (TenantBaseEntity) |
+| `title` | string | Evet | Paket adi |
+| `description` | string \| null | Hayir | Paket aciklamasi |
+| `price` | decimal(10,2) | Evet | Fiyat |
+| `createdAt` | datetime | Otomatik | Olusturulma tarihi |
+| `updatedAt` | datetime | Otomatik | Guncellenme tarihi |
+
+**Seed Data:** Migration ile 3 ornek paket eklenir (`client_id = 019cb3aa-119e-70d9-bcd0-1368ac6d79ec`):
+
+| Paket | Fiyat | Aciklama |
+|-------|-------|----------|
+| Basic Package | 9.99 | Access to basic features and content. |
+| Premium Package | 19.99 | Full access to all premium features and exclusive content. |
+| Enterprise Package | 49.99 | Unlimited access with priority support and custom integrations. |
+
+#### GET /api/v1/packages
+
+Tum paketleri listeler.
+
+**Auth:** Gerekmiyor (public)
+
+**Headers:**
+
+| Header | Zorunlu | Aciklama |
+|--------|---------|----------|
+| `X-Client-ID` | Evet | Tenant identifier |
+
+**Request:** Body/query yok
+
+**Basarili Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Packages listed",
+  "meta": { "timestamp": "...", "path": "/api/v1/packages", "correlationId": "..." },
+  "data": [
+    {
+      "id": "0192d4e5-...",
+      "clientId": "019cb3aa-...",
+      "title": "Basic Package",
+      "description": "Access to basic features and content.",
+      "price": 9.99,
+      "createdAt": "2025-06-15T10:00:00.000Z",
+      "updatedAt": "2025-06-15T10:00:00.000Z"
+    },
+    {
+      "id": "0192d4e6-...",
+      "clientId": "019cb3aa-...",
+      "title": "Premium Package",
+      "description": "Full access to all premium features and exclusive content.",
+      "price": 19.99,
+      "createdAt": "2025-06-15T10:00:00.000Z",
+      "updatedAt": "2025-06-15T10:00:00.000Z"
+    },
+    {
+      "id": "0192d4e7-...",
+      "clientId": "019cb3aa-...",
+      "title": "Enterprise Package",
+      "description": "Unlimited access with priority support and custom integrations.",
+      "price": 49.99,
+      "createdAt": "2025-06-15T10:00:00.000Z",
+      "updatedAt": "2025-06-15T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
 ### Clients
 
 > Client modulu controller icermez. Internal servis olarak kullanilir. Client'lar migration ile seed edilir.
