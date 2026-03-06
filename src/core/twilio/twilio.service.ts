@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { Twilio } from 'twilio';
 import { BusinessException } from '@common/exceptions';
 import { ErrorCode } from '@common/constants';
+import { getLanguageFromPhone } from '@common/utils';
+import { getCallMessage } from './twiml-messages';
 
 @Injectable()
 export class TwilioService {
@@ -21,9 +23,29 @@ export class TwilioService {
     }
   }
 
-  async makeCall(to: string): Promise<{ sid: string }> {
+  async makeCall(
+    to: string,
+    options?: { language?: string; notes?: string },
+  ): Promise<{ sid: string }> {
+    const { language: langOverride, notes } = options ?? {};
+    const { language, voice } = langOverride
+      ? { language: langOverride, voice: getLanguageFromPhone(to).voice }
+      : getLanguageFromPhone(to);
+
+    const message = getCallMessage(language);
+    const fullMessage = notes ? `${message} ${notes}` : message;
+
+    const twiml = [
+      '<Response>',
+      `<Say language="${language}" voice="${voice}">${this.escapeXml(fullMessage)}</Say>`,
+      '<Pause length="1"/>',
+      `<Say language="${language}" voice="${voice}">${this.escapeXml(fullMessage)}</Say>`,
+      '<Hangup/>',
+      '</Response>',
+    ].join('');
+
     if (!this.client) {
-      this.logger.log(`[MOCK] Would call ${to}`);
+      this.logger.log(`[MOCK] Would call ${to} — language=${language}, voice=${voice}`);
       return { sid: 'mock-sid' };
     }
 
@@ -33,7 +55,9 @@ export class TwilioService {
     const call = await this.client.calls.create({
       to,
       from: from!,
-      twiml: '<Response><Hangup/></Response>',
+      twiml,
+      timeout: 20,
+      timeLimit: 10,
       ...(statusCallbackUrl && {
         statusCallback: statusCallbackUrl,
         statusCallbackEvent: ['completed', 'busy', 'no-answer', 'failed'],
@@ -41,6 +65,15 @@ export class TwilioService {
     });
 
     return { sid: call.sid };
+  }
+
+  private escapeXml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
   }
 
   async sendSms(to: string, body: string): Promise<{ sid: string }> {

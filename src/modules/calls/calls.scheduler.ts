@@ -32,7 +32,9 @@ export class CallsScheduler {
         await this.callsRepository.rawUpdate(call.id, { status: CallStatus.IN_PROGRESS });
 
         try {
-          const result = await this.twilioService.makeCall(call.phone);
+          const result = await this.twilioService.makeCall(call.phone, {
+            notes: call.notes ?? undefined,
+          });
           this.logger.log(`Call ${call.id} initiated — Twilio SID: ${result.sid}`);
 
           await this.callsRepository.rawUpdate(call.id, {

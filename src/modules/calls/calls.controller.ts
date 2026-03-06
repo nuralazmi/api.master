@@ -17,7 +17,7 @@ import {Public} from '@common/decorators/public.decorator';
 import {ApiWrappedResponse} from '@common/decorators/api-wrapped-response.decorator';
 import {ApiCursorPaginatedResponse} from '@common/decorators/api-cursor-paginated-response.decorator';
 import {CallsService} from './calls.service';
-import {CreateCallDto, CallResponseDto, ListCallsDto} from './dto';
+import {CreateCallDto, CallResponseDto, ListCallsDto, TriggerTestCallDto} from './dto';
 
 @ApiBearerAuth()
 @ApiTags('Calls')
@@ -51,8 +51,9 @@ export class CallsController {
 
     @Post('trigger-test')
     @HttpCode(HttpStatus.OK)
-    async triggerTestCall(@Body('phone') phone: string) {
-        const data = await this.callsService.triggerTestCall(phone);
+    @ApiExcludeEndpoint()
+    async triggerTestCall(@Body() dto: TriggerTestCallDto) {
+        const data = await this.callsService.triggerTestCall(dto.phone);
         return { message: 'Test call triggered', data };
     }
 
